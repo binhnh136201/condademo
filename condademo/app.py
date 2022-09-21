@@ -50,8 +50,8 @@ for x in range(35):
 
   json_string = json.dumps(question_list, ensure_ascii=False)
     
-  with open('data.json', 'w', encode='utf-8') as f:
-    json.dump(question_list, f)
+  with open('data.json', 'w', encoding='utf8') as json_file:
+    json.dump(question_list, json_file, ensure_ascii=False)
 
   
 
