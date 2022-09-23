@@ -4,12 +4,18 @@ import utils
 import requests
 import json
 import xmltojson, xmltodict
-# importing re module
+from pymongo import MongoClient
 import re
 
 url = "https://oto360.net/thi-lai-xe?"
-question_list = []
 
+myclient = MongoClient("mongodb://localhost:27017/")
+
+db = myclient["GFG"]
+
+Collection = db["data"]
+
+question_list = []
 
 
 for x in range(35):
@@ -47,57 +53,20 @@ for x in range(35):
   question_list.append(question_object)
 
   # print(question_list)
-
-  json_string = json.dumps(question_list, ensure_ascii=False)
-    
-  with open('data.json', 'w', encoding='utf8') as json_file:
-    json.dump(question_list, json_file, ensure_ascii=False)
-
   
+  with open('data.json', 'w', encoding='utf8') as file:
+    json.dump(question_list, file, indent = 4, ensure_ascii=False)
 
 
 
+  # Inserting the loaded data in the Collection
+  # if JSON contains data more than one entry
+  # insert_many is used else insert_one is used
 
+with open('data.json') as file:
+    file_data = json.load(file)
 
-#TEST
-
-# with open('result.txt') as f:
-#   response = f.read()
-  
-
-# soup = BeautifulSoup(response, 'html.parser')
-
-
-
-
-# response = requests.request("POST", url, headers=headers, data=payload)
-# soup = BeautifulSoup(response.content, 'html.parser')
-
-# # question number
-# questions = soup.find_all("p")
-# question_object = {}
-# question_txt = questions[0]
-# question_numbers = question_txt.find_all(string=re.compile("Câu hỏi"))
-# question_number = question_numbers[0]
-# question_object['question_number'] = question_number
-
-# #question content
-# question_content = questions[1].string
-# question_object['question_content'] = question_content
-
-
-# #question answer
-# answers = soup.select('a[class="answer-Y"]')
-# for answer in answers:
-#   question_answer = answer.get_text(strip=True)
-
-# question_object['question_answer'] = question_answer
-
-# question_list.append(question_object)
-
-# # print(question_list)
-
-# json_string = json.dumps(question_list, ensure_ascii=False)
-  
-# with open('data.json', 'w') as f:
-#   json.dump(question_list, f)
+if isinstance(file_data, list):
+    Collection.insert_many(file_data) 
+else:
+    Collection.insert_one(file_data)
