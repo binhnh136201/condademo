@@ -5,7 +5,9 @@ import requests
 import json
 import xmltojson, xmltodict
 from pymongo import MongoClient
+import pymongo
 import re
+import dns
 
 url = "https://oto360.net/thi-lai-xe?"
 
@@ -17,47 +19,67 @@ Collection = db["data"]
 
 question_list = []
 
-
-for x in range(35):
-  test_position = str(x)
-  payload = "ajax=loadQuestionNext&current=" + test_position + "&exam=1&selected=0"
-  headers = {
-  'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
-  }
-
-  response = requests.request("POST", url, headers=headers, data=payload)
-  soup = BeautifulSoup(response.content, 'html.parser')
-  response = requests.request("POST", url, headers=headers, data=payload)
-  soup = BeautifulSoup(response.content, 'html.parser')
-
-  # question number
-  questions = soup.find_all("p")
-  question_object = {}
-  question_txt = questions[0]
-  question_numbers = question_txt.find_all(string=re.compile("Câu hỏi"))
-  question_number = question_numbers[0]
-  question_object['question_number'] = question_number
-
-  #question content
-  question_content = questions[1].string
-  question_object['question_content'] = question_content
+question_object = {}
 
 
-  #question answer
-  answers = soup.select('a[class="answer-Y"]')
-  for answer in answers:
-    question_answer = answer.get_text(strip=True)
-
-  question_object['question_answer'] = question_answer
-
-  question_list.append(question_object)
-
-  # print(question_list)
-  
-  with open('data.json', 'w', encoding='utf8') as file:
-    json.dump(question_list, file, indent = 4, ensure_ascii=False)
+client = pymongo.MongoClient("mongodb+srv://binhnh136201:Hoangbinh136@cluster0.btiv9as.mongodb.net/?retryWrites=true&w=majority")
+db = client.test
 
 
+for y in range(1,61):
+  id_pos = str(y)
+  for x in range(35):
+    test_pos = str(x)
+    payload = "ajax=loadQuestionNext&current=" + test_pos + "&exam=" + id_pos +"&selected=0"
+    headers = {
+    'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'
+    }
+
+    response = requests.request("POST", url, headers=headers, data=payload)
+    soup = BeautifulSoup(response.content, 'html.parser')
+
+
+    question_exam = {}
+
+    # question id
+    question_id = y
+    question_exam['question_id']  = question_id
+    
+
+    # question number
+    questions = soup.find_all("p")
+    question_exam['question_number'] = x + 1
+
+
+    # question content
+    question_content = questions[1].string
+    question_exam['question_content'] = question_content
+
+
+    # question answers
+    for answers in soup.select('blockquote'):
+
+
+      all_answer = []
+      all_answer.append(answers.a.get_text(strip=True))
+      for answer in answers.a.find_next_siblings('a'):
+        all_answer.append(answer.get_text(strip=True))
+
+    question_exam['question_answer'] = all_answer
+    
+    # question final
+    for final in soup.select('a[class="answer-Y"]'):
+        question_exam['final_answer'] = final.b.get_text(strip=True).replace('.', '') 
+
+    question_list.append(question_exam)
+
+
+
+
+
+
+with open('data.json', 'w', encoding='utf8') as file:
+  json.dump(question_list, file, indent = 4, ensure_ascii=False)
 
   # Inserting the loaded data in the Collection
   # if JSON contains data more than one entry
